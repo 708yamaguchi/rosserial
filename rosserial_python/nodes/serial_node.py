@@ -43,6 +43,8 @@ import multiprocessing
 
 import sys
 
+import threading
+
 if __name__=="__main__":
 
     rospy.init_node("serial_node")
@@ -84,9 +86,12 @@ if __name__=="__main__":
     else :          # Use serial port
         while not rospy.is_shutdown():
             rospy.loginfo("Connecting to %s at %d baud" % (port_name,baud) )
+            rospy.logerr("[Start of while] The number of alive Threads: {}".format(threading.active_count()))
             try:
                 client = SerialClient(port_name, baud, fix_pyserial_for_test=fix_pyserial_for_test)
+                rospy.logerr("[Middle1 of while] The number of alive Threads: {}".format(threading.active_count()))
                 client.run()
+                rospy.logerr("[Middle2 of while] The number of alive Threads: {}".format(threading.active_count()))
             except KeyboardInterrupt:
                 break
             except SerialException:
@@ -96,8 +101,12 @@ if __name__=="__main__":
                 sleep(1.0)
                 continue
             except:
+                rospy.logerr("[Middle3 of while] The number of alive Threads: {}".format(threading.active_count()))
                 rospy.logwarn("Unexpected Error.%s", sys.exc_info()[0])
                 client.port.close()
+                rospy.logerr("Call client.stopWriteThread")
+                client.stopWriteThread()
                 sleep(1.0)
+                rospy.logerr("[End of while] The number of alive Threads: {}".format(threading.active_count()))
                 continue
 
