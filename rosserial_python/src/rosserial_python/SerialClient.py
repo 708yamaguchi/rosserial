@@ -321,7 +321,7 @@ class SerialClient(object):
         ServiceServer responds to requests from the serial device.
     """
 
-    def __init__(self, port=None, baud=57600, timeout=5.0, fix_pyserial_for_test=False):
+    def __init__(self, port=None, baud=57600, timeout=5.0, fix_pyserial_for_test=False, throttle_period=300):
         """ Initialize node, connect to bus, attempt to negotiate topics. """
 
         self.read_lock = threading.RLock()
@@ -339,6 +339,8 @@ class SerialClient(object):
         self.timeout = timeout
         self.synced = False
         self.fix_pyserial_for_test = fix_pyserial_for_test
+
+        self.throttle_period = throttle_period
 
         self.pub_diagnostics = rospy.Publisher('/diagnostics', diagnostic_msgs.msg.DiagnosticArray, queue_size=10)
 
@@ -406,7 +408,7 @@ class SerialClient(object):
 
     def requestTopics(self):
         """ Determine topics to subscribe/publish. """
-        rospy.loginfo('Requesting topics...')
+        rospy.loginfo_throttle(self.throttle_period, 'Requesting topics...')
 
         # TODO remove if possible
         if not self.fix_pyserial_for_test:
@@ -463,9 +465,9 @@ class SerialClient(object):
         while not rospy.is_shutdown():
             if (rospy.Time.now() - self.lastsync).to_sec() > (self.timeout * 3):
                 if self.synced:
-                    rospy.logerr("Lost sync with device, restarting...")
+                    rospy.logerr_throttle(self.throttle_period, "Lost sync with device, restarting...")
                 else:
-                    rospy.logerr("Unable to sync with device; possible link problem or link software version mismatch such as hydro rosserial_python with groovy Arduino")
+                    rospy.logerr_throttle(self.throttle_period, "Unable to sync with device; possible link problem or link software version mismatch such as hydro rosserial_python with groovy Arduino")
                 self.lastsync_lost = rospy.Time.now()
                 self.sendDiagnostics(diagnostic_msgs.msg.DiagnosticStatus.ERROR, ERROR_NO_SYNC)
                 self.requestTopics()
@@ -551,8 +553,8 @@ class SerialClient(object):
                     rospy.loginfo("wrong checksum for topic id and msg")
 
             except IOError as exc:
-                rospy.logwarn('Last read step: %s' % read_step)
-                rospy.logwarn('Run loop error: %s' % exc)
+                rospy.logwarn_throttle(self.throttle_period, 'Last read step: %s' % read_step)
+                rospy.logwarn_throttle(self.throttle_period, 'Run loop error: %s' % exc)
                 # One of the read calls had an issue. Just to be safe, request that the client
                 # reinitialize their topics.
                 with self.read_lock:

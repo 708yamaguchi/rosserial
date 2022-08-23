@@ -82,10 +82,13 @@ if __name__=="__main__":
             rospy.loginfo("All done")
 
     else :          # Use serial port
+        throttle_period = 300
         while not rospy.is_shutdown():
-            rospy.loginfo("Connecting to %s at %d baud" % (port_name,baud) )
+            rospy.loginfo_throttle(throttle_period, "Connecting to %s at %d baud" % (port_name,baud) )
             try:
-                client = SerialClient(port_name, baud, fix_pyserial_for_test=fix_pyserial_for_test)
+                client = SerialClient(
+                    port_name, baud, fix_pyserial_for_test=fix_pyserial_for_test,
+                    throttle_period=throttle_period)
                 client.run()
             except KeyboardInterrupt:
                 break
@@ -96,7 +99,7 @@ if __name__=="__main__":
                 sleep(1.0)
                 continue
             except:
-                rospy.logwarn("Unexpected Error.%s", sys.exc_info()[0])
+                rospy.logwarn_throttle(throttle_period, "Unexpected Error.%s", sys.exc_info()[0])
                 client.port.close()
                 client.stopWriteThread()
                 sleep(1.0)
